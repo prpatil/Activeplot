@@ -1,20 +1,18 @@
-library(survival)
-library(rjson)
-
 d3cat <- function(dat, c_sort, day_max=1000, line_col="steelblue"){
 
-	cat(paste("function survival(data, init_data, coef){
+	paste("<script type='text/javascript'>
+function survival(data, init_data, coef){
 
   var w     = 700;
-  var h     = 300;
-  var colors = ['", line_col, "'];
+  var h     = 400;
+  var colors = ['", line_col, "'];  // Color of line
 
   // Scales
   var x  = d3.scale.linear().domain([0,", day_max, "]).range([0, w]);
   var y  = d3.scale.linear().domain([-0.2,1.1]).range([h, 0]);
 
   // Base vis layer
-  var vis = d3.select('#playground') // PUT OUR DIV NAME HERE
+  var vis = d3.select('#main')
         .append('svg:svg')
         .attr('width', w)
         .attr('height', h)
@@ -53,7 +51,7 @@ d3cat <- function(dat, c_sort, day_max=1000, line_col="steelblue"){
       .style('stroke', function(d,i){return colors[i];})
     .attr('d', line);
    
-    vis.on('click',function(){
+    vis.on('click',function(){  // THIS IS THE TRANSITION FCN...CURRENTLY RELIES ON RANDOM DATA
   vis.selectAll('path.line')
     .data([update_hazard(init_data, coef, rcov(coef.length))])
     .transition().duration(1800).delay(100).ease('elastic')
@@ -63,7 +61,9 @@ d3cat <- function(dat, c_sort, day_max=1000, line_col="steelblue"){
 }
 
 // Make sure covariates and coefficients are in order!
-function update_hazard(data, coef, covar){
+// Updates hazard function by multiplying each coefficient by its new value
+// We need a function that updates the covariate array when a change is made to the form
+function update_hazard(data, coef, covar){ 
   var tmpdata = JSON.parse(JSON.stringify(data));
   var xb = 0;
   for(var i=0; i < coef.length; i++){
@@ -95,18 +95,21 @@ function init(){
   survival([out], data, coef);
 }
 
-init();", sep=""))
+init();
+</script>
+", sep="")
 
 }
 
 css_cat <- function(line_size=2, axis_size=1){
 
-	cat(paste("path {
-  stroke: #00b;
-  stroke-width: ", line_size ,"px;
-  fill: none;
-}
-  .axis {
+	paste("\n\t\t\t<style type='text/css'>
+		#main path {
+		  stroke: #00b;
+		  stroke-width: ", line_size ,"px;
+		  fill: none;
+		}
+		.axis {
               shape-rendering: crispEdges;
             }
 
@@ -127,9 +130,9 @@ css_cat <- function(line_size=2, axis_size=1){
               stroke: #000;
               stroke-width: ", axis_size ,"px;
             }
+		 </style>
 
-
-", sep=""))
+", sep="")
 
 }
 
@@ -146,7 +149,7 @@ baseline <- function(ds){
 }
 
 # Pass this a coxph object
-coxap <- function(cobj, data){
+coxap <- function(cobj, data, plotTitle=""){
 
 	if(class(cobj) != "coxph"){
 		stop("Object not of class 'coxph'")
@@ -162,8 +165,9 @@ coxap <- function(cobj, data){
 		stop("Number of covariates exceeds 10")
 	}
 
-	# Figure out what kind of menus are needed (0:drop-down of 1:input box)
-	menu_type <- vector("integer", length(vars))
+	# Figure out what kind of menus are needed
+	menu_type <- vector("character", length(vars))
+	varlist <- list()
 
 	for(i in 1:length(vars)){
 		cur <- tmpdata[[vars[i]]]
@@ -171,12 +175,14 @@ coxap <- function(cobj, data){
 			if(length(table(cur)) < 5){
 				warning("Variable ", vars[[i]], " has fewer than 5 unique values; treating as continuous, but should this be a factor?")
 			}
-			menu_type[i] <- 1
+			menu_type[i] <- "continuous"
+			varlist[[vars[i]]] <- range(cur)
 		} else if(class(cur) == "factor"){
 			if(length(levels(cur)) > 10){
 				stop("Variable ", vars[[i]], " has too many levels (>10).")
 			}
-			menu_type[i] <- 0
+			menu_type[i] <- "factor"
+			varlist[[vars[i]]] <- levels(cur)
 		}
 	}
 
@@ -190,15 +196,9 @@ coxap <- function(cobj, data){
 	data <- apply(data, 1, as.list)
 	djs <- toJSON(data)
 	c_sort <- cobj$coef[sort(names(cobj$coef))]
-	# WE STIL HAVE VARIABLE menu_type TO DEAL WITH
-	d3cat(djs, c_sort) # We also have css_cat()...not sure when to deploy
-	cat("\n\nCSS\n\n")
-	css_cat()
-	#djs
+
+	outlist <- list("d3_script" = d3cat(djs, c_sort), "d3_css" = css_cat(),
+	     "menu_type" = menu_type, "varlist"=varlist)
+
+	plot.activePlot(writePage(outlist$d3_script, outlist$d3_css, varType=outlist$menu_type, varList=outlist$varlist, plotTitle=plotTitle))
 }
-
-# The user will make a coxph object with their data
-cobj <- coxph(Surv(time, status)~trt+age, data=veteran)
-
-# Then they will run our 'plot-like' function
-tmp <- coxap(cobj, veteran)

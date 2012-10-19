@@ -1,4 +1,4 @@
-writeHeader <- function(plotTitle="Individualized survival plot", varType=c("continuous","factor","continuous"),varList=list(age=c(10,99),sex=c("male","female"),weight=c(100,300))){
+writeHeader <- function(d3_css, plotTitle="Individualized survival plot", varType=c("continuous","factor","continuous"),varList=list(age=c(10,99),sex=c("male","female"),weight=c(100,300))){
 	
 	header <- paste('<!DOCTYPE html>\n<html lang="en">\n\t<head>\n\t\t<meta charset="utf-8">"\n')
 	header <- paste(header,'\n\t\t\t<title>',plotTitle,'</title>\n')
@@ -7,7 +7,8 @@ writeHeader <- function(plotTitle="Individualized survival plot", varType=c("con
 	# May need to change the location of these scripts (Jquery, Jquery Validation Plugin, Twitter Bootstrap)
 	header <- paste(header,'\n\t\t\t<link href="http://biostat.jhsph.edu/~jleek/bootstrap/css/bootstrap.css" rel="stylesheet">
 							\n\t\t\t<script type="text/javascript" src="http://biostat.jhsph.edu/~jleek/validate/jquery-1.4.4.js"></script>
-							\n\t\t\t<script type="text/javascript" src="http://biostat.jhsph.edu/~jleek/validate/jquery.validate.js"></script>')
+							\n\t\t\t<script type="text/javascript" src="http://biostat.jhsph.edu/~jleek/validate/jquery.validate.js"></script>
+							\n\t\t\t<script type="text/javascript" src="http://d3js.org/d3.v2.js"></script>\n')
 
 
 	# This is where we make the error message red
@@ -24,9 +25,11 @@ writeHeader <- function(plotTitle="Individualized survival plot", varType=c("con
 
 	header <- paste(header, writeValidate(varType,varList))
 
+	# Add d3 CSS
+	header <- paste(header, '\n\t', d3_css)
+
 	#Close header
 	header <- paste(header,'\n\t</head>')
 
-	# In the future, this is where the D3 will go
 	return(header)
 }
