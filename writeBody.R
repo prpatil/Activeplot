@@ -31,4 +31,5 @@ writeBody <- function(plotTitle="Individualized survival plot", varType=c("conti
 	htmlBody <- paste(htmlBody,'\n\t\t</div>')
 	htmlBody <- paste(htmlBody,'\n\t</body>')
 	htmlBody <- paste(htmlBody,'\n</html>')
+
 }

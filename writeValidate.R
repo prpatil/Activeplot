@@ -25,5 +25,4 @@ writeValidate <- function(varType,varList){
 	validate <- paste(validate,"\n\t\t\t\t});")
 	validate <- paste(validate,'\n\n\t\t\t</script>')
 	return(validate)
-
 }
