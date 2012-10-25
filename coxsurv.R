@@ -179,6 +179,8 @@ coxap <- function(cobj, data, plotTitle=""){
 
 	vars <- all.vars(formula[[3]]) # This is a list of all variables on RHS
 
+	day_max <- max(data[[all.vars(formula[[2]])[1]]]) # This might need to be updated
+
 	if(length(vars) > 10){
 		stop("Number of covariates exceeds 10")
 	}
@@ -220,7 +222,7 @@ coxap <- function(cobj, data, plotTitle=""){
 
 	c_sort <- c_sort[sort(names(c_sort))]
 
-	outlist <- list("d3_script" = d3cat(djs, c_sort, names(c_sort), vars, menu_type), "d3_css" = css_cat(),
+	outlist <- list("d3_script" = d3cat(djs, c_sort, names(c_sort), vars, menu_type, day_max=day_max), "d3_css" = css_cat(),
 				"menu_type" = menu_type, "varlist"=varlist)
 
 	plot.activePlot(writePage(outlist$d3_script, outlist$d3_css, varType=outlist$menu_type, varList=outlist$varlist, plotTitle=plotTitle))
