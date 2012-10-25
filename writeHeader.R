@@ -33,9 +33,7 @@ writeHeader <- function(d3_css, plotTitle="Individualized survival plot", varTyp
 								$('#covariate-form :input').change(function() {
 									  if($('#covariate-form').valid()){
 										  var newcov = $('#covariate-form').serializeArray();
-										  fig_update(newcov);
-										  //alert(typeof newcov[0].value);
-									  };
+										  fig_update(newcov);									  };
 								});
 							});
 					 \n\t\t\t</script>")
