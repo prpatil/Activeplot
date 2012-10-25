@@ -1,7 +1,47 @@
-d3cat <- function(dat, c_sort, day_max=1000, line_col="steelblue"){
+d3cat <- function(dat, c_sort, cnames, day_max=1000, line_col="steelblue"){
 
 	paste("<script type='text/javascript'>
-function survival(data, init_data, coef){
+
+function init_coefs(coef_nums, coef_names){
+	var coefs = new Array();
+	
+	for(var i=0; i < coef_names.length; i++){
+		coefs[coef_names[i]] = coef_nums[i];
+	}
+
+	return coefs;
+}
+
+// Updates hazard function by multiplying each coefficient by its new value
+// We need a function that updates the covariate array when a change is made to the form
+function update_hazard(data, coef, covar){ 
+  var tmpdata = JSON.parse(JSON.stringify(data));
+  var xb = 0;
+
+  for(key in coef){
+	xb = xb + coef[key]*covar[key];
+  }
+  
+  var prop = Math.exp(xb);
+  
+  for(var j=0; j < data.length; j++){
+    tmpdata[j].haz = Math.exp(-data[j].haz*prop);
+  }
+  return tmpdata;
+}
+
+  var init_data = ", dat ,";
+  var coef_nums = [", paste(c_sort, collapse=", ") ,"];
+  var coef_names = [", paste("'", paste(cnames, collapse="', '"), "'", sep="") ,"];
+  var init_vals = [", paste(rep(0, length(c_sort)), collapse=", ") ,"];
+
+  // Initialize associative array of coefficients and coef names
+  var coef = init_coefs(coef_nums, coef_names);
+  // Initialize patient values to 0 to get baseline hazard
+  var covar = init_coefs(init_vals, coef_names);
+  // Initialize baseline hazard function
+  var data = [update_hazard(init_data, coef, covar)];
+
 
   var w     = 700;
   var h     = 400;
@@ -50,52 +90,23 @@ function survival(data, init_data, coef){
     .attr('class', 'line')
       .style('stroke', function(d,i){return colors[i];})
     .attr('d', line);
-   
-    vis.on('click',function(){  // THIS IS THE TRANSITION FCN...CURRENTLY RELIES ON RANDOM DATA
-  vis.selectAll('path.line')
-    .data([update_hazard(init_data, coef, rcov(coef.length))])
-    .transition().duration(1800).delay(100).ease('elastic')
-        .attr('width', 0)
-    .attr('d',line);
-   });
+
+
+function update_covar(newcov){
+	for(var j=0; j < newcov.length; j++){
+		covar[newcov[j].name] = newcov[j].value;
+	}	
 }
 
-// Make sure covariates and coefficients are in order!
-// Updates hazard function by multiplying each coefficient by its new value
-// We need a function that updates the covariate array when a change is made to the form
-function update_hazard(data, coef, covar){ 
-  var tmpdata = JSON.parse(JSON.stringify(data));
-  var xb = 0;
-  for(var i=0; i < coef.length; i++){
-    xb = xb + coef[i]*covar[i];
-  }
-  
-  var prop = Math.exp(xb);
-  
-  for(var j=0; j < data.length; j++){
-    tmpdata[j].haz = Math.exp(-data[j].haz*prop);
-  }
-  return tmpdata;
+function fig_update(newcov){
+	update_covar(newcov);
+	vis.selectAll('path.line')
+			.data([update_hazard(init_data, coef, covar)])
+    			.transition().duration(1800).delay(100).ease('elastic')
+        		.attr('width', 0)
+    		   .attr('d',line);
 }
 
-function rcov(len){
-  var cov = [];
-  for(var k=0; k < len; k++){
-    cov[k] = (Math.random()*20 + 10);
-  }
-  return cov;
-}
-
-function init(){
-  var data = ", dat ,";
-  var coef = [", paste(c_sort, collapse=", ") ,"];
-  var vals = [", paste(rep(0, length(c_sort)), collapse=", ") ,"];
-  // Initialize baseline hazard function with 0 for all covar
-  var out = update_hazard(data, coef, vals);
-  survival([out], data, coef);
-}
-
-init();
 </script>
 ", sep="")
 
@@ -105,7 +116,7 @@ css_cat <- function(line_size=2, axis_size=1){
 
 	paste("\n\t\t\t<style type='text/css'>
 		#main path {
-		  stroke: #00b;
+		  stroke: #000;
 		  stroke-width: ", line_size ,"px;
 		  fill: none;
 		}
@@ -125,8 +136,12 @@ css_cat <- function(line_size=2, axis_size=1){
               display: none;
             }
 
-            .y.axis line, .y.axis path {
-              fill: none;
+            .y.axis line {
+			stroke: lightgrey;
+		}
+
+		.y.axis path {
+              //fill: none;
               stroke: #000;
               stroke-width: ", axis_size ,"px;
             }
@@ -168,6 +183,7 @@ coxap <- function(cobj, data, plotTitle=""){
 	# Figure out what kind of menus are needed
 	menu_type <- vector("character", length(vars))
 	varlist <- list()
+	refcats <- c()
 
 	for(i in 1:length(vars)){
 		cur <- tmpdata[[vars[i]]]
@@ -183,6 +199,7 @@ coxap <- function(cobj, data, plotTitle=""){
 			}
 			menu_type[i] <- "factor"
 			varlist[[vars[i]]] <- levels(cur)
+			refcats <- c(refcats, paste(vars[i], levels(cur)[1], sep=""))
 		}
 	}
 
@@ -195,9 +212,12 @@ coxap <- function(cobj, data, plotTitle=""){
 	colnames(data) <- c("time", "haz")
 	data <- apply(data, 1, as.list)
 	djs <- toJSON(data)
-	c_sort <- cobj$coef[sort(names(cobj$coef))]
+	
+	c_sort <- c(cobj$coef, sapply(refcats, function(x){assign(x, 0)}))
 
-	outlist <- list("d3_script" = d3cat(djs, c_sort), "d3_css" = css_cat(),
+	c_sort <- c_sort[sort(names(c_sort))]
+
+	outlist <- list("d3_script" = d3cat(djs, c_sort, names(c_sort)), "d3_css" = css_cat(),
 	     "menu_type" = menu_type, "varlist"=varlist)
 
 	plot.activePlot(writePage(outlist$d3_script, outlist$d3_css, varType=outlist$menu_type, varList=outlist$varlist, plotTitle=plotTitle))
