@@ -41,7 +41,7 @@ paste("<script type='text/javascript'>
 	// Initialize associative array of variable names
 	var vtype = init_coefs(mtype, vlist);
 	// Initialize baseline hazard function
-	var data = [update_hazard(init_data, coef, covar)];
+	var data = update_hazard(init_data, coef, covar);
 
 
 	var w = 700;
@@ -84,12 +84,22 @@ paste("<script type='text/javascript'>
 	// Add path layer
 
 	vis.selectAll('.line')
-	.data(data)
+	.data([data])
 	.enter().append('path')
 	.attr('class', 'line')
 	.style('stroke', function(d,i){return colors[i];})
 	.attr('d', line);
 
+	vis.selectAll('circle')
+          .data(data)
+          .enter()
+          .append('svg:circle')
+          .attr('cx', function(d) { return x(d.time); })
+          .attr('cy', function(d) { return y(d.haz); })
+          .attr('r', 3)
+          .attr('opacity', 0)
+	    .append('svg:title')
+	    .text(function(d){return 'Day: '+d.time+'\\nSurvival: '+Math.round(d.haz*1000)/1000;});
 
 	function update_covar(newcov){
 		covar = init_coefs(init_vals, coef_names);
