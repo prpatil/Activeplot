@@ -114,11 +114,20 @@ paste("<script type='text/javascript'>
 
 	function fig_update(newcov){
 		update_covar(newcov);
+		var tmp = update_hazard(init_data, coef, covar)
 		vis.selectAll('path.line')
-			.data([update_hazard(init_data, coef, covar)])
+			.data([tmp])
 			.transition().duration(1800).delay(100).ease('elastic')
 			.attr('width', 0)
 			.attr('d',line);
+
+		vis.selectAll('circle')
+	          .data(tmp)
+		    .transition().duration(1800).delay(100).ease('elastic')
+	          .attr('cx', function(d) { return x(d.time); })
+	          .attr('cy', function(d) { return y(d.haz); })
+	          .attr('r', 3)
+	          .attr('opacity', 0)
 	}
 
 	</script>
