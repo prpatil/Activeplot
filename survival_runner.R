@@ -19,3 +19,4 @@ coxap(cobj, veteran, plotTitle="Veteran Data Survival Curve")
 cobj2 <- coxph(Surv(time, status)~age+disease+frail, data=kidney)
 
 coxap(cobj2, kidney, plotTitle="Kidney Data")
+
