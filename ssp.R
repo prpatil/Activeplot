@@ -194,6 +194,6 @@ css_cat <- function(line_size=2, axis_size=1){
 }
 
 # NOTE: can't have weird characeters (e.g. periods) in the names of the categories
-ssp <- function(){
-	plot.activePlot(writePage(d3cat(), css_cat(),varType=c("continuous","continuous","continuous"),varList=list(Sens=c(0,1),Spec=c(0,1),Prev=c(0,1))))
+ssp <- function(main="Sensitivity/Specificity Plot"){
+	plot.activePlot(writePage(d3cat(), css_cat(),plotTitle=main,varType=c("continuous","continuous","continuous"),varList=list(Sens=c(0,1),Spec=c(0,1),Prev=c(0,1))))
 }
